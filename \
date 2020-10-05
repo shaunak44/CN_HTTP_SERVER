@@ -1,0 +1,14 @@
+from socket import *
+from threading import *
+import sys
+portNumber = int(sys.argv[1])
+serverSocket = socket(AF_INET, SOCK_STREAM)
+serverSocket.bind(('', portNumber))
+serverSocket.listen(20)
+print("HTTP server running on port ", portNumber)
+while(True):
+	clientSocket, address = serverSocket.accept()
+	print("connected to", address)
+	requestData = clientSocket.recv(1024)
+	print(requestData.decode())
+	clientSocket.sendall("alhsdjalsc".encode())
