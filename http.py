@@ -1,5 +1,5 @@
 from socket import *
-from threading import *
+import _thread
 import sys
 from wsgiref.handlers import format_date_time
 from datetime import datetime
@@ -43,53 +43,64 @@ def split_data(data):
 		words.append(i.split(" "))	
 	return words
 
-try:
+def client_thread(clientSocket):
 	while(True):
+		try:
+			responseData = ""
+			responseHeader = "HTTP/1.1"
+			url = "."
+			requestData = clientSocket.recv(1024)
+			requestData = requestData.decode()[:-2]
+			requestWords = split_data(requestData)
+			#print(requestWords)
+			flag_status_code = {"200": False, "304": False, "400": False, "404": False}
+			if(requestWords[0][0] == "GET"):
+				version = "HTTP/1.1"
+				if(len(requestWords[0]) == 3):
+					version = requestWords[0][2]
+				if(len(requestWords[0]) >= 2):
+					url += str(requestWords[0][1])
+				#print(is_root_url(url))
+				if(is_root_url(url)):
+					try:
+						requestedFile = open(url, "r")
+						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
+					except:
+						#code to send not found
+						flag_status_code["404"] = True
+				else:	
+					#code to send bad request
+					flag_status_code["400"] = True
+				if(flag_status_code["404"]):
+					responseHeader += (" 404 " + status_code["404"] + "\r\n")
+					responseHeader = create_header(responseHeader)
+					clientSocket.sendall(responseHeader.encode())
+				elif(flag_status_code["400"]):	
+					responseHeader += (" 400 " + status_code["400"] + "\r\n")
+					responseHeader = create_header(responseHeader)
+					clientSocket.sendall(responseHeader.encode())			
+				else:
+					fileObject = requestedFile.read()
+					requestedFileLen = len(fileObject)
+					#print(requestedFileLen)
+					responseHeader += (" 200 " + status_code["200"] + "\r\n")
+					responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType)
+					#print(responseHeader)
+					fileObject = responseHeader + fileObject
+					#print(fileObject)
+					clientSocket.sendall(fileObject.encode())
+			clientSocket.close()
+		except:
+			clientSocket.close()
+			break
+
+
+while True:
+	try:
 		clientSocket, address = serverSocket.accept()
 		print("connected to", address)
-		responseData = ""
-		responseHeader = "HTTP/1.1"
-		url = "."
-		requestData = clientSocket.recv(1024)
-		requestData = requestData.decode()[:-2]
-		requestWords = split_data(requestData)
-		#print(requestWords)
-		flag_status_code = {"200": False, "304": False, "400": False, "404": False}
-		if(requestWords[0][0] == "GET"):
-			version = "HTTP/1.1"
-			if(len(requestWords[0]) == 3):
-				version = requestWords[0][2]
-			if(len(requestWords[0]) >= 2):
-				url += str(requestWords[0][1])
-			#print(is_root_url(url))
-			if(is_root_url(url)):
-				try:
-					requestedFile = open(url, "r")
-					requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
-				except:
-					#code to send not found
-					flag_status_code["404"] = True
-			else:	
-				#code to send bad request
-				flag_status_code["400"] = True
-			if(flag_status_code["404"]):
-				responseHeader += (" 404 " + status_code["404"] + "\r\n")
-				responseHeader = create_header(responseHeader)
-				clientSocket.sendall(responseHeader.encode())
-			elif(flag_status_code["400"]):	
-				responseHeader += (" 400 " + status_code["400"] + "\r\n")
-				responseHeader = create_header(responseHeader)
-				clientSocket.sendall(responseHeader.encode())			
-			else:
-				fileObject = requestedFile.read()
-				requestedFileLen = len(fileObject)
-				#print(requestedFileLen)
-				responseHeader += (" 200 " + status_code["200"] + "\r\n")
-				responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType)
-				#print(responseHeader)
-				fileObject = responseHeader + fileObject
-				#print(fileObject)
-				clientSocket.sendall(fileObject.encode())
-		clientSocket.close()
-except:
-	clientSocket.close()
+		_thread.start_new_thread(client_thread, (clientSocket, ))
+	except:
+		print("\n*****Http server stopped*****")
+		break
+serverSocket.close()
