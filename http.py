@@ -47,10 +47,18 @@ def client_thread(clientSocket):
     while(True):
         try:
             responseData = ""
+            requestData = b''
             responseHeader = "HTTP/1.1"
             url = "."
-            requestData = clientSocket.recv(1024)
+            temp = clientSocket.recv(1024)
+            while(temp != b'\r\n'):
+                requestData += temp
+                temp = clientSocket.recv(1024)
+            #temp1 = clientSocket.recv(1024)
+            #temp2 = clientSocket.recv(1024)
+            #requestData = temp1 + temp2
             requestData = requestData.decode()[:-2]
+            #print ("requestData", requestData)
             requestWords = split_data(requestData)
             #print(requestWords)
             flag_status_code = {"200": False, "304": False, "400": False, "404": False}
