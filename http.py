@@ -69,11 +69,12 @@ def client_thread(clientSocket):
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
 				if(len(requestWords[0]) >= 2):
-					url += str(requestWords[0][1])
+					info = requestWords[0][1].split("?") 
+					url += str(info[0])
 				#print(is_root_url(url))
 				if(is_root_url(url)):
 					try:
-						requestedFile = open(url, "r")
+						requestedFile = open(url, "rb")
 						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
 					except:
 						#code to send not found
@@ -104,11 +105,12 @@ def client_thread(clientSocket):
 					responseHeader += (" 200 " + status_code["200"] + "\r\n")
 					responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType)
 					#print(responseHeader)
-					fileObject = responseHeader + fileObject
+					fileObject = responseHeader.encode() + fileObject
 					#print(fileObject)
-					clientSocket.sendall(fileObject.encode())
+					clientSocket.sendall(fileObject)
 			clientSocket.close()
 		except:
+			#print(e)
 			clientSocket.close()
 			break
 
@@ -119,6 +121,7 @@ while True:
 		print("connected to", address)
 		_thread.start_new_thread(client_thread, (clientSocket, ))
 	except:
+		#print(e)
 		print("\n*****Http server stopped*****")
 		break
 serverSocket.close()
