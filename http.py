@@ -2,12 +2,13 @@ from socket import *
 import _thread
 import sys
 import time
+from os import path
 from wsgiref.handlers import format_date_time
 from datetime import datetime
 from time import mktime
 import mimetypes
 
-status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found"}
+status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", "201": "Created", "204":"No Content"}
 
 
 portNumber = int(sys.argv[1])
@@ -16,7 +17,7 @@ serverSocket.bind(('', portNumber))
 serverSocket.listen(20)
 print("HTTP server running on port ", portNumber)
 
-def recv_timeout(the_socket,timeout=0.3):
+'''def recv_timeout(the_socket,timeout=0.3):
 	the_socket.setblocking(0) 
 	total_data=[];
 	data=b'';
@@ -37,7 +38,18 @@ def recv_timeout(the_socket,timeout=0.3):
 		except:
 			pass
 	
-	return ''.join(total_data)
+	return ''.join(total_data)'''
+
+def recv_timeout(socket):
+	BUFF_SIZE = 4096
+	data = b''
+	while True:
+		part = socket.recv(BUFF_SIZE)
+		data+=part
+		if (len(part) < BUFF_SIZE):
+			break
+	data = data.decode()
+	return data
 
 def date():
 	now = datetime.now()
@@ -57,13 +69,14 @@ def parse_headers(words):
 		headers[words[i][0][:-1]] = words[i][1]
 	return headers
 
-def create_header(header, Content_len = 0, Content_type = "text/html"):
+def create_header(header, Content_len = 0, Content_type = "text/html", method = "GET"):
 	header += ("Date: " + date()+"\r\n")
 	header += ("Server: Http server (ubuntu)\r\n")
 	header += ("Content-Length: " + str(Content_len) + "\r\n")
 	header += ("Connection: Close\r\n")
 	header += ("Content-Type: " + str(Content_type) + "\r\n")
-	header += ("\r\n")
+	if(method == "GET"):
+		header += ("\r\n")
 	#print(header)	
 	return header
 
@@ -94,9 +107,9 @@ def client_thread(clientSocket):
 			#print(requestWords)
 			headers = parse_headers(requestWords)
 			requestBody = parse_body(requestData)
-			print(headers)
-			print(requestBody)
-			flag_status_code = {"200": False, "304": False, "400": False, "404": False}
+			#print(headers)
+			#print(requestBody)
+			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False}
 			if(requestWords[0][0] == "GET"):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
@@ -141,8 +154,46 @@ def client_thread(clientSocket):
 					fileObject = responseHeader.encode() + fileObject
 					#print(fileObject)
 					clientSocket.sendall(fileObject)
+
 			elif (requestWords[0][0] == "POST"):
-				print("Executing post....")		
+				print("Executing post....")	
+
+			elif (requestWords[0][0] == "PUT"):	
+				version = "HTTP/1.1"
+				if(len(requestWords[0]) == 3):
+					version = requestWords[0][2]
+				url += requestWords[0][1]
+				if(is_root_url):
+					try:
+						flag = path.exists(url)
+						requestedFile = open(url, "w+")
+						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
+						requestedFile.write(requestBody)
+						if(flag):
+							responseHeader += ( " 204 " + status_code["204"] + "\r\n")
+							flag_status_code["204"] = True
+						else:
+							responseHeader += ( " 201 " + status_code["201"] + "\r\n")
+							flag_status_code["201"] = True
+						responseHeader += create_header(responseHeader, 0, requestedFileType, "post")
+						responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
+					except:
+						pass
+				else:	
+					#code to send bad request
+					flag_status_code["400"] = True
+
+				if(flag_status_code["400"]):	
+					responseHeader += (" 400 " + status_code["400"] + "\r\n")
+					responseHeader = create_header(responseHeader)
+					bad_req = open ("bad_req.html", "r")
+					file_text = bad_req.read()
+					bad_req.close()
+					responseHeader += file_text
+					clientSocket.sendall(responseHeader.encode())			
+				else:	
+					clientSocket.sendall(responseHeader.encode())			
+
 			clientSocket.close()
 		except Exception as e:
 			print(e)
