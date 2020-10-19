@@ -1,6 +1,7 @@
 from socket import *
 import _thread
 import sys
+import time
 from wsgiref.handlers import format_date_time
 from datetime import datetime
 from time import mktime
@@ -8,17 +9,53 @@ import mimetypes
 
 status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found"}
 
+
 portNumber = int(sys.argv[1])
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', portNumber))
 serverSocket.listen(20)
 print("HTTP server running on port ", portNumber)
 
+def recv_timeout(the_socket,timeout=0.3):
+	the_socket.setblocking(0) 
+	total_data=[];
+	data=b'';
+	begin=time.time()
+	while 1:
+		if total_data and time.time()-begin > timeout:
+			break
+		
+		elif time.time()-begin > timeout*2:
+			break	
+		try:
+			data = the_socket.recv(8192)
+			if data:
+				total_data.append(data.decode())
+				begin=time.time()
+			else:
+				time.sleep(0.1)
+		except:
+			pass
+	
+	return ''.join(total_data)
+
 def date():
 	now = datetime.now()
 	stamp = mktime(now.timetuple())
 	return format_date_time(stamp)
 
+def parse_body(data):
+	_, body = data.split("\r\n\r\n")
+	return body
+
+def parse_headers(words):
+	headers = {}
+	for i in range(1, len(words)-2):
+		if(len(words[i]) > 2):
+			for j in range(2, len(words[i])):
+				words[i][1] += (" " + words[i][j])
+		headers[words[i][0][:-1]] = words[i][1]
+	return headers
 
 def create_header(header, Content_len = 0, Content_type = "text/html"):
 	header += ("Date: " + date()+"\r\n")
@@ -50,19 +87,15 @@ def client_thread(clientSocket):
 			requestData = b''
 			responseHeader = "HTTP/1.1"
 			url = "."
-			
-			temp = clientSocket.recv(1024)
-			requestData += temp 
-			while(b'\r\n\r\n' not in requestData):
-				temp = clientSocket.recv(1024)
-				requestData += temp		   
-			#requestData = clientSocket.recv(1024)
-			#print ("byte requestData", requestData)
-			requestData = requestData.decode()#[:-2]
-			#print ("string requestData", requestData)
-			print(requestData)
+			headers = {}
+			requestBody = ""	
+			requestData = recv_timeout(clientSocket)
 			requestWords = split_data(requestData)
-			print(requestWords)
+			#print(requestWords)
+			headers = parse_headers(requestWords)
+			requestBody = parse_body(requestData)
+			print(headers)
+			print(requestBody)
 			flag_status_code = {"200": False, "304": False, "400": False, "404": False}
 			if(requestWords[0][0] == "GET"):
 				version = "HTTP/1.1"
@@ -108,9 +141,11 @@ def client_thread(clientSocket):
 					fileObject = responseHeader.encode() + fileObject
 					#print(fileObject)
 					clientSocket.sendall(fileObject)
+			elif (requestWords[0][0] == "POST"):
+				print("Executing post....")		
 			clientSocket.close()
-		except:
-			#print(e)
+		except Exception as e:
+			print(e)
 			clientSocket.close()
 			break
 
