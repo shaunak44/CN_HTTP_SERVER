@@ -135,24 +135,22 @@ def client_thread(clientSocket):
 					requestedFileLen = len(fileObject)
 					#print(requestedFileLen)
 					if(headers.get("If-Modified-Since", None)):
-						print(date())
 						Request_date = date_mktime(headers["If-Modified-Since"])
 						Current_date = date_mktime(date())
 						File_mod_date = path.getmtime(url)
-						if(mktime(Request_date) - mktime(Current_date) < File_mod_date):
+						print(mktime(Request_date), mktime(Current_date) ,File_mod_date)
+						if(int(File_mod_date) <= int(mktime(Request_date))):
 							flag_status_code["304"] = True
-							print("Not Modified")
 						else:
 							flag_status_code["200"] = True
 
 					if(flag_status_code["304"]):
 						responseHeader += (" 304 " + status_code["304"] + "\r\n")
-						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" ,time.ctime(path.getmtime(url)))
+						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET", time.ctime(path.getmtime(url)))
 						clientSocket.sendall(responseHeader.encode())
 					else:
 						responseHeader += (" 200 " + status_code["200"] + "\r\n")
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" ,time.ctime(path.getmtime(url)))
-						#print(time.ctime(path.getmtime(url)))
 						#print(responseHeader)
 						fileObject = responseHeader.encode() + fileObject
 						#print(fileObject)
