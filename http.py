@@ -10,14 +10,13 @@ import mimetypes
 
 status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", "201": "Created", "204":"No Content"}
 
-
 portNumber = int(sys.argv[1])
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', portNumber))
 serverSocket.listen(20)
 print("HTTP server running on port ", portNumber)
 
-def recv_timeout(socket):
+def recv_timeout(socket):	
 	BUFF_SIZE = 4096
 	data = b''
 	while True:
@@ -88,12 +87,14 @@ def client_thread(clientSocket):
 			url = "."
 			headers = {}
 			requestBody = ""	
-			requestData = recv_timeout(clientSocket)
+			
+			requestData= recv_timeout(clientSocket)
+			print(requestData)
 			requestWords = split_data(requestData)
 			#print(requestWords)
 			headers = parse_headers(requestWords)
 			requestBody = parse_body(requestData)
-			print(headers)
+			#print(headers)
 			#print(requestBody)
 			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False}
 			if(requestWords[0][0] == "GET"):
@@ -115,10 +116,10 @@ def client_thread(clientSocket):
 					#code to send bad request
 					flag_status_code["400"] = True
 				if(flag_status_code["404"]):
-					responseHeader += (" 404 " + status_code["404"] + "\r\n")
-					responseHeader = create_header(responseHeader)
 					not_found_page = open ("not_found.html", "r")
 					file_text = not_found_page.read()
+					responseHeader += (" 404 " + status_code["404"] + "\r\n")
+					responseHeader = create_header(responseHeader, len(file_text))
 					not_found_page.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
@@ -138,7 +139,7 @@ def client_thread(clientSocket):
 						Request_date = date_mktime(headers["If-Modified-Since"])
 						Current_date = date_mktime(date())
 						File_mod_date = path.getmtime(url)
-						print(mktime(Request_date), mktime(Current_date) ,File_mod_date)
+						#print(mktime(Request_date), mktime(Current_date) ,File_mod_date)
 						if(int(File_mod_date) <= int(mktime(Request_date))):
 							flag_status_code["304"] = True
 						else:
