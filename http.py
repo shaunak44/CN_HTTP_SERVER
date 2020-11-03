@@ -2,12 +2,14 @@ from socket import *
 import _thread
 import sys
 import time
+import os
 from os import path
 from wsgiref.handlers import format_date_time
 from datetime import datetime
 from time import mktime
 import mimetypes
 import random
+import logging
 
 status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", "201": "Created", "204":"No Content"}
 
@@ -159,9 +161,7 @@ def client_thread(clientSocket):
 											time.ctime(path.getmtime(url)), set_cookie_flag)
 						clientSocket.sendall(responseHeader.encode())
 					else:
-						print(headers.get("Cookie", None), "$$$$$$$$")
 						if(headers.get("Cookie", None) == None or "TestCookie" not in headers.get("Cookie", None)):
-							print("Inside Cookie************")
 							set_cookie_flag = True
 						responseHeader += (" 200 " + status_code["200"] + "\r\n")
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" 
@@ -191,7 +191,7 @@ def client_thread(clientSocket):
 						else:
 							responseHeader += ( " 201 " + status_code["201"] + "\r\n")
 							flag_status_code["201"] = True
-						responseHeader += create_header(responseHeader, 0, requestedFileType, "post")
+						responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
 						responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
 					except:
 						pass
@@ -209,7 +209,52 @@ def client_thread(clientSocket):
 					clientSocket.sendall(responseHeader.encode())			
 				else:	
 					clientSocket.sendall(responseHeader.encode())			
+			
+			elif(requestWords[0][0] == "DELETE"):
+				version = "HTTP/1.1"
+				if(len(requestWords[0]) == 3):
+					version = requestWords[0][2]
+				url += requestWords[0][1]
+				if(is_root_url):
+					try:
+						flag = path.exists(url)
+						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
+						if(flag):
+							try:
+								os.remove(url)	
+								responseHeader += ( " 204 " + status_code["204"] + "\r\n")
+								responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+								responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
+								flag_status_code["204"] = True
+							except Exception as e:
+								print(e)	
+								flag_status_code["404"] = True
+						else:
+							flag_status_code["404"] = True
+					except Exception as e:
+						print(e)
+				else:	
+					#code to send bad request
+					flag_status_code["400"] = True
 
+				if(flag_status_code["400"]):	
+					responseHeader += (" 400 " + status_code["400"] + "\r\n")
+					responseHeader = create_header(responseHeader)
+					bad_req = open ("bad_req.html", "r")
+					file_text = bad_req.read()
+					bad_req.close()
+					responseHeader += file_text
+					clientSocket.sendall(responseHeader.encode())
+				elif(flag_status_code["404"]):
+					not_found_page = open ("not_found.html", "r")
+					file_text = not_found_page.read()
+					responseHeader += (" 404 " + status_code["404"] + "\r\n")
+					responseHeader = create_header(responseHeader, len(file_text))
+					not_found_page.close()
+					responseHeader += file_text
+					clientSocket.sendall(responseHeader.encode())
+				else: #when status code is 204 No content 	
+					clientSocket.sendall(responseHeader.encode())			
 			clientSocket.close()
 		except Exception as e:
 			print(e)
