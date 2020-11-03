@@ -1,4 +1,4 @@
-from os import path
-print(path.exists("./index.html"))
-
-print(path.exists("./temp.html"))
+import configparser
+config = configparser.ConfigParser()
+config.read("temp.conf")
+print(config)
