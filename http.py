@@ -57,8 +57,8 @@ def create_header(header, Content_len = 0, Content_type = "text/html", method = 
 	header += ("Server: Http server (ubuntu)\r\n")
 	header += ("Content-Length: " + str(Content_len) + "\r\n")
 	header += ("Connection: Close\r\n")
-	header += ("Content-Type: " + str(Content_type) + "\r\n")
-	
+	header += ("Content-Type: " + str(Content_type) + "\r\n")		
+	#header += ("Content-Encoding: " + "gzip" + "\r\n")
 	if(set_cookie_flag):
 		header += ("Set-Cookie: " + "TestCookie=" + str(random.randint(10000, 99999))+ "\r\n")
 	
