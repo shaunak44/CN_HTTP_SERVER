@@ -12,10 +12,33 @@ import random
 import logging
 import configparser
 
+
 serverConfig = configparser.ConfigParser()
 serverConfig.read("server.conf")
 print(list(serverConfig["REDIRECT"]), type(serverConfig["DEFAULT"]["DocumentRoot"]))
 
+formatter = logging.Formatter('%(message)s')
+
+
+def setup_logger(name, log_file, level=logging.INFO):
+	
+	handler = logging.FileHandler(log_file)		   
+	handler.setFormatter(formatter)
+
+	logger = logging.getLogger(name)
+	logger.setLevel(level)
+	logger.addHandler(handler)
+
+	return logger
+
+access_logger = setup_logger('access_logger', serverConfig["DEFAULT"]["AccessLog"])
+error_logger = setup_logger('error_logger',serverConfig["DEFAULT"]["ErrorLog"], logging.ERROR)
+post_logger = setup_logger('post_logger', serverConfig["DEFAULT"]["PostLog"]) 
+debug_logger = setup_logger('debug_logger', serverConfig["DEFAULT"]["DebugLog"], logging.DEBUG)
+'''access_logger.info('This is testing access log')
+post_logger.info('This is testing post log')
+error_logger.error('this is testing error log')
+debug_logger.debug('This is testing debug log')'''
 
 status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", 
 						"201": "Created", "204":"No Content", "301":"Moved Permanently", "307":"Temporary Redirect"}
@@ -26,6 +49,12 @@ serverSocket.bind(('', portNumber))
 serverSocket.listen(int(serverConfig["DEFAULT"]["maxSimulteneousConnections"]))
 print("HTTP server running on port ", portNumber)
 
+def get_key(val, my_dict): 
+	for key, value in my_dict.items(): 
+		 if val == value: 
+			 return key
+	return None 
+
 def create_hyperlink(port, page):
 	return "<h1><a>http://127.0.0.1:" + str(port) + str(page) + "</a></h2>\r\n"
 
@@ -33,7 +62,10 @@ def recv_timeout(socket):
 	BUFF_SIZE = 4096
 	data = b''
 	while True:
-		part = socket.recv(BUFF_SIZE)
+		try:
+			part = socket.recv(BUFF_SIZE)
+		except Exception as e:
+			print(e, "++++++++++++++++++++++++++++++++++++++")
 		data+=part
 		if (len(part) < BUFF_SIZE):
 			break
@@ -76,6 +108,7 @@ def create_header(header, Content_len = 0, Content_type = "text/html", method = 
 			try:
 				header += ("Last-Modified: " + str(last_mod_date) + "\r\n")
 			except Exception as e:
+				error_logger.error("Server exception occurred", exc_info=True)
 				print(e)
 		header += ("\r\n")
 	#print(header)	
@@ -94,7 +127,7 @@ def split_data(data):
 		words.append(i.split(" "))	
 	return words
 
-def client_thread(clientSocket):
+def client_thread(clientSocket, address):
 	while(True):
 		try:
 			responseData = ""
@@ -140,6 +173,7 @@ def client_thread(clientSocket):
 						requestedFile = open(url, "rb")
 						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
 					except:
+						error_logger.error("Server exception occurred", exc_info=True)
 						#code to send not found
 						flag_status_code["404"] = True
 				else:	
@@ -187,6 +221,7 @@ def client_thread(clientSocket):
 				
 				else:
 					fileObject = requestedFile.read()
+					requestedFile.close()
 					requestedFileLen = len(fileObject)
 					#print(requestedFileLen)
 					if(headers.get("If-Modified-Since", None)):
@@ -239,7 +274,8 @@ def client_thread(clientSocket):
 							flag_status_code["201"] = True
 						responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
 						responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
-					except:
+					except Exception as e:
+						error_logger.error("Server exception occurred", exc_info=True)
 						pass
 				else:	
 					#code to send bad request
@@ -273,11 +309,13 @@ def client_thread(clientSocket):
 								responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
 								flag_status_code["204"] = True
 							except Exception as e:
+								error_logger.error("Server exception occurred", exc_info=True)
 								print(e)	
 								flag_status_code["404"] = True
 						else:
 							flag_status_code["404"] = True
 					except Exception as e:
+						error_logger.error("Server exception occurred", exc_info=True)
 						print(e)
 				else:	
 					#code to send bad request
@@ -299,12 +337,20 @@ def client_thread(clientSocket):
 					not_found_page.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
-				else: #when status code is 204 No content 	
-					clientSocket.sendall(responseHeader.encode())			
+				else: #when status code is 204 No content	
+					clientSocket.sendall(responseHeader.encode())
+			log_flag = False
+			if(get_key(True, flag_status_code) != None):
+				log_flag = True
+				access_logger.info(str(address[0]) + " [" + str(date()) + 
+									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code))
 			clientSocket.close()
 		except Exception as e:
-			print(e)
+			if(get_key(True, flag_status_code) != None and not log_flag):
+				access_logger.info(str(address[0]) + " [" + str(date()) + 
+									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code))
 			clientSocket.close()
+			error_logger.error("Server exception occurred", exc_info=True)
 			break
 
 
@@ -312,7 +358,7 @@ while True:
 	try:
 		clientSocket, address = serverSocket.accept()
 		print("connected to", address)
-		_thread.start_new_thread(client_thread, (clientSocket, ))
+		_thread.start_new_thread(client_thread, (clientSocket, address, ))
 	except:
 		#print(e)
 		print("\n*****Http server stopped*****")
