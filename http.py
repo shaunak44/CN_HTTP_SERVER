@@ -123,12 +123,12 @@ def client_thread(clientSocket):
 					info = requestWords[0][1].split("?") 
 					#print(is_root_url(url))
 					if(info[0] in list(serverConfig["REDIRECT"])):
-						print("PERMANT REDIRECT$$$$$")
+						#print("PERMANT REDIRECT$$$$$")
 						header_flag_register["per_redirect_flag"] = True
 						flag_status_code["301"] = True
 						url += serverConfig["REDIRECT"][info[0]]
 					elif(info[0] in list(serverConfig["TEMP_REDIRECT"])):
-						print("TEMP_REDIRE$$$$$$$$$")
+						#print("TEMP_REDIRE$$$$$$$$$")
 						flag_status_code["307"] = True 
 						header_flag_register["temp_redirect_flag"] = True
 						url += serverConfig["TEMP_REDIRECT"][info[0]]
