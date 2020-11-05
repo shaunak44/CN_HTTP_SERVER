@@ -52,14 +52,13 @@ def parse_headers(words):
 		headers[words[i][0][:-1]] = words[i][1]
 	return headers
 
-def create_header(header, Content_len = 0, Content_type = "text/html", method = "GET", last_mod_date = None, set_cookie_flag = False):
+def create_header(header, Content_len = 0, Content_type = "text/html", method = "GET", last_mod_date = None, header_flag_register = {}):
 	header += ("Date: " + date()+"\r\n")
 	header += ("Server: Http server (ubuntu)\r\n")
 	header += ("Content-Length: " + str(Content_len) + "\r\n")
 	header += ("Connection: Close\r\n")
 	header += ("Content-Type: " + str(Content_type) + "\r\n")		
-	#header += ("Content-Encoding: " + "gzip" + "\r\n")
-	if(set_cookie_flag):
+	if(header_flag_register.get("set_cookie_flag", None)):
 		header += ("Set-Cookie: " + "TestCookie=" + str(random.randint(10000, 99999))+ "\r\n")
 	
 	if(method == "GET"):
@@ -94,6 +93,7 @@ def client_thread(clientSocket):
 			url = "."
 			headers = {}
 			requestBody = ""	
+			header_flag_register = {"set_cookie_flag":False}
 			
 			requestData= recv_timeout(clientSocket)
 			print(requestData)
@@ -104,7 +104,7 @@ def client_thread(clientSocket):
 			#print(headers)
 			#print(requestBody)
 			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False}
-			set_cookie_flag = False
+			#set_cookie_flag = False
 			if(requestWords[0][0] == "GET"):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
@@ -155,17 +155,17 @@ def client_thread(clientSocket):
 
 					if(flag_status_code["304"]):
 						if(headers.get("Cookie", None) == None or "TestCookie" not in headers.get("Cookie", None)):
-							set_cookie_flag = True
+							header_flag_register["set_cookie_flag"] = True
 						responseHeader += (" 304 " + status_code["304"] + "\r\n")
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET", 
-											time.ctime(path.getmtime(url)), set_cookie_flag)
+											time.ctime(path.getmtime(url)), header_flag_register)
 						clientSocket.sendall(responseHeader.encode())
 					else:
 						if(headers.get("Cookie", None) == None or "TestCookie" not in headers.get("Cookie", None)):
-							set_cookie_flag = True
+							header_flag_register["set_cookie_flag"] = True
 						responseHeader += (" 200 " + status_code["200"] + "\r\n")
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" 
-											,time.ctime(path.getmtime(url)), set_cookie_flag)
+											,time.ctime(path.getmtime(url)), header_flag_register)
 						#print(responseHeader)
 						fileObject = responseHeader.encode() + fileObject
 						#print(fileObject)
