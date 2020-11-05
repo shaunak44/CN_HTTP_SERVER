@@ -10,14 +10,24 @@ from time import mktime
 import mimetypes
 import random
 import logging
+import configparser
 
-status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", "201": "Created", "204":"No Content"}
+serverConfig = configparser.ConfigParser()
+serverConfig.read("server.conf")
+print(list(serverConfig["REDIRECT"]), type(serverConfig["DEFAULT"]["DocumentRoot"]))
+
+
+status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", 
+						"201": "Created", "204":"No Content", "301":"Moved Permanently", "307":"Temporary Redirect"}
 
 portNumber = int(sys.argv[1])
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', portNumber))
-serverSocket.listen(2)
+serverSocket.listen(int(serverConfig["DEFAULT"]["maxSimulteneousConnections"]))
 print("HTTP server running on port ", portNumber)
+
+def create_hyperlink(port, page):
+	return "<h1><a>http://127.0.0.1:" + str(port) + str(page) + "</a></h2>\r\n"
 
 def recv_timeout(socket):	
 	BUFF_SIZE = 4096
@@ -90,10 +100,10 @@ def client_thread(clientSocket):
 			responseData = ""
 			requestData = b''
 			responseHeader = "HTTP/1.1"
-			url = "."
+			url = serverConfig["DEFAULT"]["DocumentRoot"]
 			headers = {}
 			requestBody = ""	
-			header_flag_register = {"set_cookie_flag":False}
+			header_flag_register = {"set_cookie_flag":False, "temp_redirect_flag":False, "per_redirect_flag":False}
 			
 			requestData= recv_timeout(clientSocket)
 			print(requestData)
@@ -103,7 +113,7 @@ def client_thread(clientSocket):
 			requestBody = parse_body(requestData)
 			#print(headers)
 			#print(requestBody)
-			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False}
+			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False, "301": False, "307": False}
 			#set_cookie_flag = False
 			if(requestWords[0][0] == "GET"):
 				version = "HTTP/1.1"
@@ -111,8 +121,20 @@ def client_thread(clientSocket):
 					version = requestWords[0][2]
 				if(len(requestWords[0]) >= 2):
 					info = requestWords[0][1].split("?") 
-					url += str(info[0])
-				#print(is_root_url(url))
+					#print(is_root_url(url))
+					if(info[0] in list(serverConfig["REDIRECT"])):
+						print("PERMANT REDIRECT$$$$$")
+						header_flag_register["per_redirect_flag"] = True
+						flag_status_code["301"] = True
+						url += serverConfig["REDIRECT"][info[0]]
+					elif(info[0] in list(serverConfig["TEMP_REDIRECT"])):
+						print("TEMP_REDIRE$$$$$$$$$")
+						flag_status_code["307"] = True 
+						header_flag_register["temp_redirect_flag"] = True
+						url += serverConfig["TEMP_REDIRECT"][info[0]]
+					else:
+						url += str(info[0])
+				
 				if(is_root_url(url)):
 					try:
 						requestedFile = open(url, "rb")
@@ -138,7 +160,31 @@ def client_thread(clientSocket):
 					file_text = bad_req.read()
 					bad_req.close()
 					responseHeader += file_text
-					clientSocket.sendall(responseHeader.encode())			
+					clientSocket.sendall(responseHeader.encode())
+				elif(flag_status_code["301"]):
+					redirect_page = open("redirect.html", "r")
+					file_text = redirect_page.read()
+					responseHeader += (" 301 " + status_code["301"] + "\r\n")
+					responseHeader = create_header(responseHeader, len(file_text))
+					redirect_page.close()
+					responseHeader = responseHeader[:-2]
+					responseHeader += ("Location: "+ url[1:] + "\r\n\r\n")
+					responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
+					print(responseHeader)
+					clientSocket.sendall(responseHeader.encode())
+
+				elif(flag_status_code["307"]):
+					redirect_page = open("temp_redirect.html", "r")
+					file_text = redirect_page.read()
+					responseHeader += (" 307 " + status_code["307"] + "\r\n")
+					responseHeader = create_header(responseHeader, len(file_text))
+					redirect_page.close()
+					responseHeader = responseHeader[:-2]
+					responseHeader += ("Location: "+ url[1:] + "\r\n\r\n")
+					responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
+					print(responseHeader)
+					clientSocket.sendall(responseHeader.encode())
+				
 				else:
 					fileObject = requestedFile.read()
 					requestedFileLen = len(fileObject)
