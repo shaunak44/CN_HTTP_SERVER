@@ -127,6 +127,7 @@ def split_data(data):
 def client_thread(clientSocket, address):
 	while(True):
 		try:
+			content_length = 0
 			responseData = ""
 			requestData = b''
 			responseHeader = "HTTP/1.1"
@@ -168,6 +169,7 @@ def client_thread(clientSocket, address):
 				if(is_root_url(url)):
 					try:
 						requestedFile = open(url, "rb")
+						content_length = requestedFile
 						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
 					except:
 						error_logger.error("Server exception occurred", exc_info=True)
@@ -179,6 +181,7 @@ def client_thread(clientSocket, address):
 				if(flag_status_code["404"]):
 					not_found_page = open ("not_found.html", "r")
 					file_text = not_found_page.read()
+					content_length = len(file_text)
 					responseHeader += (" 404 " + status_code["404"] + "\r\n")
 					responseHeader = create_header(responseHeader, len(file_text))
 					not_found_page.close()
@@ -189,12 +192,14 @@ def client_thread(clientSocket, address):
 					responseHeader = create_header(responseHeader)
 					bad_req = open ("bad_req.html", "r")
 					file_text = bad_req.read()
+					content_length = len(file_text)
 					bad_req.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
 				elif(flag_status_code["301"]):
 					redirect_page = open("redirect.html", "r")
 					file_text = redirect_page.read()
+					content_length = len(file_text)
 					responseHeader += (" 301 " + status_code["301"] + "\r\n")
 					responseHeader = create_header(responseHeader, len(file_text))
 					redirect_page.close()
@@ -207,6 +212,7 @@ def client_thread(clientSocket, address):
 				elif(flag_status_code["307"]):
 					redirect_page = open("temp_redirect.html", "r")
 					file_text = redirect_page.read()
+					content_length = len(file_text)
 					responseHeader += (" 307 " + status_code["307"] + "\r\n")
 					responseHeader = create_header(responseHeader, len(file_text))
 					redirect_page.close()
@@ -220,6 +226,7 @@ def client_thread(clientSocket, address):
 					fileObject = requestedFile.read()
 					requestedFile.close()
 					requestedFileLen = len(fileObject)
+					content_length = requestedFileLen
 					#print(requestedFileLen)
 					if(headers.get("If-Modified-Since", None)):
 						Request_date = date_mktime(headers["If-Modified-Since"])
@@ -274,6 +281,7 @@ def client_thread(clientSocket, address):
 					responseHeader = create_header(responseHeader)
 					bad_req = open ("bad_req.html", "r")
 					file_text = bad_req.read()
+					content_length = len(file_text)
 					bad_req.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())			
@@ -281,7 +289,7 @@ def client_thread(clientSocket, address):
 					clientSocket.sendall(responseHeader.encode())			
 					
 				post_logger.info(str(address[0]) + " [" + str(date()) + 
-						'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " +str(requestBody))
+						'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " + str(content_length) + " " + str(requestBody))
 
 
 			elif (requestWords[0][0] == "PUT"):	
@@ -315,6 +323,7 @@ def client_thread(clientSocket, address):
 					responseHeader = create_header(responseHeader)
 					bad_req = open ("bad_req.html", "r")
 					file_text = bad_req.read()
+					content_length = len(file_text)
 					bad_req.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())			
@@ -355,12 +364,14 @@ def client_thread(clientSocket, address):
 					responseHeader = create_header(responseHeader)
 					bad_req = open ("bad_req.html", "r")
 					file_text = bad_req.read()
+					content_length = len(file_text)
 					bad_req.close()
 					responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
 				elif(flag_status_code["404"]):
 					not_found_page = open ("not_found.html", "r")
 					file_text = not_found_page.read()
+					content_length = len(file_text)
 					responseHeader += (" 404 " + status_code["404"] + "\r\n")
 					responseHeader = create_header(responseHeader, len(file_text))
 					not_found_page.close()
@@ -372,12 +383,12 @@ def client_thread(clientSocket, address):
 			if(get_key(True, flag_status_code) != None):
 				log_flag = True
 				access_logger.info(str(address[0]) + " [" + str(date()) + 
-									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code))
+									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " + str(content_length))
 			clientSocket.close()
 		except Exception as e:
 			if(get_key(True, flag_status_code) != None and not log_flag):
 				access_logger.info(str(address[0]) + " [" + str(date()) + 
-									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code))
+									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " + str(content_length))
 			clientSocket.close()
 			if(str(e) != "[Errno 9] Bad file descriptor"):
 				#print("HERE")
