@@ -8,3 +8,88 @@ Traceback (most recent call last):
   File "http.py", line 170, in client_thread
     requestedFile = open(url, "rb")
 FileNotFoundError: [Errno 2] No such file or directory: './favicon.ico'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 170, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './a/img_chania.jpg'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 170, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './a/1920px-HTTP_logo.svg.png'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 170, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './a/traceroute.png'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 261, in client_thread
+    if(flag):
+UnboundLocalError: local variable 'flag' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 261, in client_thread
+    if(flag):
+UnboundLocalError: local variable 'flag' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 170, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './temp.html'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 170, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './temp.html'
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment
+Server exception occurred
+Traceback (most recent call last):
+  File "http.py", line 263, in client_thread
+    responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+UnboundLocalError: local variable 'requestedFileType' referenced before assignment

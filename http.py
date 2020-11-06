@@ -251,7 +251,38 @@ def client_thread(clientSocket, address):
 						clientSocket.sendall(fileObject)
 
 			elif (requestWords[0][0] == "POST"):
-				print("Executing post....")	
+				version = "HTTP/1.1"
+				if(len(requestWords[0]) == 3):
+					version = requestWords[0][2]
+				url += requestWords[0][1]
+				if(is_root_url):
+					try:
+						#post_logger.info(requestBody)
+						responseHeader += ( " 204 " + status_code["204"] + "\r\n")
+						flag_status_code["204"] = True
+						responseHeader += create_header(responseHeader, 0, requestedFileType, "put")
+						responseHeader += ("Content-Location: " + url[1:] + "\r\n\r\n")
+					except Exception as e:
+						error_logger.error("Server exception occurred", exc_info=True)
+						pass
+				else:	
+					#code to send bad request
+					flag_status_code["400"] = True
+
+				if(flag_status_code["400"]):	
+					responseHeader += (" 400 " + status_code["400"] + "\r\n")
+					responseHeader = create_header(responseHeader)
+					bad_req = open ("bad_req.html", "r")
+					file_text = bad_req.read()
+					bad_req.close()
+					responseHeader += file_text
+					clientSocket.sendall(responseHeader.encode())			
+				else:	
+					clientSocket.sendall(responseHeader.encode())			
+					
+				post_logger.info(str(address[0]) + " [" + str(date()) + 
+						'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " +str(requestBody))
+
 
 			elif (requestWords[0][0] == "PUT"):	
 				version = "HTTP/1.1"
