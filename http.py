@@ -146,7 +146,7 @@ def client_thread(clientSocket, address):
 			#print(requestBody)
 			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False, "301": False, "307": False}
 			#set_cookie_flag = False
-			if(requestWords[0][0] == "GET"):
+			if(requestWords[0][0] == "GET" or requestWords[0][0] == "HEAD"):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
@@ -185,7 +185,8 @@ def client_thread(clientSocket, address):
 					responseHeader += (" 404 " + status_code["404"] + "\r\n")
 					responseHeader = create_header(responseHeader, len(file_text))
 					not_found_page.close()
-					responseHeader += file_text
+					if(requestWords[0][0] == "GET"):
+						responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
 				elif(flag_status_code["400"]):	
 					responseHeader += (" 400 " + status_code["400"] + "\r\n")
@@ -194,7 +195,8 @@ def client_thread(clientSocket, address):
 					file_text = bad_req.read()
 					content_length = len(file_text)
 					bad_req.close()
-					responseHeader += file_text
+					if(requestWords[0][0] == "GET"):
+						responseHeader += file_text
 					clientSocket.sendall(responseHeader.encode())
 				elif(flag_status_code["301"]):
 					redirect_page = open("redirect.html", "r")
@@ -205,7 +207,8 @@ def client_thread(clientSocket, address):
 					redirect_page.close()
 					responseHeader = responseHeader[:-2]
 					responseHeader += ("Location: "+ url[1:] + "\r\n\r\n")
-					responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
+					if(requestWords[0][0] == "GET"):
+						responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
 					print(responseHeader)
 					clientSocket.sendall(responseHeader.encode())
 
@@ -218,7 +221,8 @@ def client_thread(clientSocket, address):
 					redirect_page.close()
 					responseHeader = responseHeader[:-2]
 					responseHeader += ("Location: "+ url[1:] + "\r\n\r\n")
-					responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
+					if(requestWords[0][0] == "GET"):
+						responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
 					print(responseHeader)
 					clientSocket.sendall(responseHeader.encode())
 				
@@ -253,9 +257,12 @@ def client_thread(clientSocket, address):
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" 
 											,time.ctime(path.getmtime(url)), header_flag_register)
 						#print(responseHeader)
-						fileObject = responseHeader.encode() + fileObject
-						#print(fileObject)
-						clientSocket.sendall(fileObject)
+						if(requestWords[0][0] == "GET"):
+							fileObject = responseHeader.encode() + fileObject
+							#print(fileObject)
+							clientSocket.sendall(fileObject)
+						elif(requestWords[0][0] == "HEAD"):	
+							clientSocket.sendall(responseHeader.encode())
 
 			elif (requestWords[0][0] == "POST"):
 				version = "HTTP/1.1"
