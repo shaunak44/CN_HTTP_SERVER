@@ -19,6 +19,10 @@ print(list(serverConfig["REDIRECT"]), type(serverConfig["DEFAULT"]["DocumentRoot
 
 formatter = logging.Formatter('%(message)s')
 
+def date():
+	now = datetime.now()
+	stamp = mktime(now.timetuple())
+	return time.asctime(time.localtime())
 
 def setup_logger(name, log_file, level=logging.INFO):
 	
@@ -48,6 +52,7 @@ serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', portNumber))
 serverSocket.listen(int(serverConfig["DEFAULT"]["maxSimulteneousConnections"]))
 print("HTTP server running on port ", portNumber)
+debug_logger.debug("[" + str(date()) + "] HTTP server running on port " + str(portNumber))
 
 def get_key(val, my_dict): 
 	for key, value in my_dict.items(): 
@@ -62,20 +67,12 @@ def recv_timeout(socket):
 	BUFF_SIZE = 4096
 	data = b''
 	while True:
-		try:
-			part = socket.recv(BUFF_SIZE)
-		except Exception as e:
-			print(e, "++++++++++++++++++++++++++++++++++++++")
+		part = socket.recv(BUFF_SIZE)
 		data+=part
 		if (len(part) < BUFF_SIZE):
 			break
 	data = data.decode()
 	return data
-
-def date():
-	now = datetime.now()
-	stamp = mktime(now.timetuple())
-	return time.asctime(time.localtime())
 
 def date_mktime(string):
 	return time.strptime(string, "%a %b %d %H:%M:%S %Y")
@@ -245,6 +242,7 @@ def client_thread(clientSocket, address):
 						if(headers.get("Cookie", None) == None or "TestCookie" not in headers.get("Cookie", None)):
 							header_flag_register["set_cookie_flag"] = True
 						responseHeader += (" 200 " + status_code["200"] + "\r\n")
+						flag_status_code["200"] = True
 						responseHeader = create_header(responseHeader, requestedFileLen, requestedFileType,"GET" 
 											,time.ctime(path.getmtime(url)), header_flag_register)
 						#print(responseHeader)
@@ -350,7 +348,9 @@ def client_thread(clientSocket, address):
 				access_logger.info(str(address[0]) + " [" + str(date()) + 
 									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code))
 			clientSocket.close()
-			error_logger.error("Server exception occurred", exc_info=True)
+			if(str(e) != "[Errno 9] Bad file descriptor"):
+				#print("HERE")
+				error_logger.error("Server exception occurred", exc_info=True)
 			break
 
 
@@ -358,10 +358,12 @@ while True:
 	try:
 		clientSocket, address = serverSocket.accept()
 		print("connected to", address)
+		debug_logger.debug("[" + str(date()) + "] connected to IP: " + str(address[0]) + " Port: " + str(address[1]))
 		_thread.start_new_thread(client_thread, (clientSocket, address, ))
 	except:
 		#print(e)
 		print("\n*****Http server stopped*****")
+		debug_logger.debug("[" + str(date()) + "] HTTP server stopped")
 		break
 serverSocket.close()
 '''def recv_timeout(the_socket,timeout=0.3):
