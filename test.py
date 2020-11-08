@@ -1,5 +1,5 @@
 import configparser
 config = configparser.ConfigParser()
-config.read('http.conf')
+config.read('server.conf')
 print(config.sections())
-print(config["DEFAULT"]["ForwardX11"])
+print(list(config["AUTHORIZED_USERS"]))

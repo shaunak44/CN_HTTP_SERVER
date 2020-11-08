@@ -11,7 +11,7 @@ import mimetypes
 import random
 import logging
 import configparser
-
+import base64 
 
 serverConfig = configparser.ConfigParser()
 serverConfig.read("server.conf")
@@ -44,7 +44,7 @@ post_logger.info('This is testing post log')
 error_logger.error('this is testing error log')
 debug_logger.debug('This is testing debug log')'''
 
-status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", 
+status_code = {"200": "OK", "304": "Not Modified", "400": "Bad Request", "404": "Not Found", "401":"Unauthorized", "403":"Forbidden",
 						"201": "Created", "204":"No Content", "301":"Moved Permanently", "307":"Temporary Redirect"}
 
 portNumber = int(sys.argv[1])
@@ -136,17 +136,55 @@ def client_thread(clientSocket, address):
 			requestBody = ""	
 			header_flag_register = {"set_cookie_flag":False, "temp_redirect_flag":False, "per_redirect_flag":False}
 			
+			global log_flag
 			requestData= recv_timeout(clientSocket)
 			print(requestData)
 			requestWords = split_data(requestData)
 			#print(requestWords)
 			headers = parse_headers(requestWords)
-			requestBody = parse_body(requestData)
+			try:
+				requestBody = parse_body(requestData)
+			except:
+				pass
 			#print(headers)
 			#print(requestBody)
-			flag_status_code = {"200": False, "304": False, "400": False, "404": False, "201": False, "204": False, "301": False, "307": False}
+			flag_status_code = {"304": False, "400": False, "404": False, "201": False, "204": False, "301": False, "307": False, 
+									"401": False, "403": False, "200": False} 
+			
+			
+			
+			if(requestWords[0][1] in list(serverConfig["AUTHORIZED_FILES"])):
+				flag_status_code["401"] = True
+				credentials = headers.get("Authorization", None)
+				print(credentials, "SDS#########3")
+				if(not credentials):
+					responseHeader += (" 401 " + status_code["401"] + "\r\n")
+					responseHeader = create_header(responseHeader, 0)
+					responseHeader = responseHeader[:-2]
+					responseHeader += 'WWW-Authenticate: Basic realm="Access to staging site"'
+					responseHeader += ("\r\n\r\n")
+					flag_status_code["401"] = True
+					clientSocket.sendall(responseHeader.encode())
+				else:
+					type_, credentials = credentials.split(" ")
+					credentials_bytes = credentials.encode("ascii") 
+					credential_sample_bytes = base64.b64decode(credentials_bytes)
+					credentials = credential_sample_bytes.decode("ascii")
+					username, password = credentials.split(":")
+					if(username in list(serverConfig["AUTHORIZED_USERS"]) 
+						and serverConfig["AUTHORIZED_USERS"][username] == password):
+						flag_status_code["401"] = False
+					else:	
+						responseHeader += (" 401 " + status_code["401"] + "\r\n")
+						responseHeader = create_header(responseHeader, 0)
+						responseHeader = responseHeader[:-2]
+						responseHeader += 'WWW-Authenticate: Basic realm="Access to staging site"'
+						responseHeader += ("\r\n\r\n")
+						flag_status_code["401"] = True
+						clientSocket.sendall(responseHeader.encode())
+			
 			#set_cookie_flag = False
-			if(requestWords[0][0] == "GET" or requestWords[0][0] == "HEAD"):
+			if(requestWords[0][0] == "GET" or requestWords[0][0] == "HEAD" and not flag_status_code["401"]):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
@@ -162,7 +200,7 @@ def client_thread(clientSocket, address):
 						#print("TEMP_REDIRE$$$$$$$$$")
 						flag_status_code["307"] = True 
 						header_flag_register["temp_redirect_flag"] = True
-						url += serverConfig["TEMP_REDIRECT"][info[0]]
+						url += serverConfig["TEMP_REDIRECT"][info[0]]	
 					else:
 						url += str(info[0])
 				
@@ -225,7 +263,7 @@ def client_thread(clientSocket, address):
 						responseHeader += (create_hyperlink(portNumber, url[1:]) + file_text)
 					print(responseHeader)
 					clientSocket.sendall(responseHeader.encode())
-				
+	
 				else:
 					fileObject = requestedFile.read()
 					requestedFile.close()
@@ -387,8 +425,10 @@ def client_thread(clientSocket, address):
 				else: #when status code is 204 No content	
 					clientSocket.sendall(responseHeader.encode())
 			log_flag = False
+			counter = 0
 			if(get_key(True, flag_status_code) != None):
 				log_flag = True
+				counter+=1
 				access_logger.info(str(address[0]) + " [" + str(date()) + 
 									'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " + str(content_length))
 			clientSocket.close()
