@@ -150,13 +150,11 @@ def client_thread(clientSocket, address):
 			#print(requestBody)
 			flag_status_code = {"304": False, "400": False, "404": False, "201": False, "204": False, "301": False, "307": False, 
 									"401": False, "403": False, "200": False} 
-			
-			
-			
+				
 			if(requestWords[0][1] in list(serverConfig["AUTHORIZED_FILES"])):
 				flag_status_code["401"] = True
 				credentials = headers.get("Authorization", None)
-				print(credentials, "SDS#########3")
+				#print(credentials, "SDS#########3")
 				if(not credentials):
 					responseHeader += (" 401 " + status_code["401"] + "\r\n")
 					responseHeader = create_header(responseHeader, 0)
