@@ -17,6 +17,7 @@ serverConfig = configparser.ConfigParser()
 serverConfig.read("server.conf")
 print(list(serverConfig["REDIRECT"]), type(serverConfig["DEFAULT"]["DocumentRoot"]))
 
+
 formatter = logging.Formatter('%(message)s')
 
 def date():
@@ -98,7 +99,17 @@ def create_header(header, Content_len = 0, Content_type = "text/html", method = 
 	header += ("Connection: Close\r\n")
 	header += ("Content-Type: " + str(Content_type) + "\r\n")		
 	if(header_flag_register.get("set_cookie_flag", None)):
-		header += ("Set-Cookie: " + "TestCookie=" + str(random.randint(10000, 99999))+ "\r\n")
+		cookie_file = open("cookies.txt", "r")
+		cookie_list = cookie_file.read().splitlines()
+		#print("Cookie_list", cookie_list)
+		cookie_file.close()	
+		cookie_val = str(random.randint(10000, 99999))
+		while cookie_val in cookie_list:
+			cookie_val = str(random.randint(10000, 99999))		
+		cookie_file = open("cookies.txt", "a")
+		cookie_file.write(cookie_val + "\n")
+		cookie_file.close()
+		header += ("Set-Cookie: " + "TestCookie=" + cookie_val + "\r\n")
 	
 	if(method == "GET"):
 		if(last_mod_date != None):
@@ -192,8 +203,12 @@ def client_thread(clientSocket, address):
 				responseHeader = create_header(responseHeader, content_length)
 				responseHeader += file_text
 				clientSocket.sendall(responseHeader.encode())
-				clientSocket.close()
+				#clientSocket.close()
 				method_flag["get"] = False
+				method_flag["post"] = False
+				method_flag["head"] = False
+				method_flag["delete"] = False
+				method_flag["put"] = False
 				#break
 
 			
@@ -316,12 +331,12 @@ def client_thread(clientSocket, address):
 						elif(requestWords[0][0] == "HEAD"):	
 							clientSocket.sendall(responseHeader.encode())
 
-			elif (requestWords[0][0] == "POST"):
+			elif (requestWords[0][0] == "POST" and method_flag["post"]):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
 				url += requestWords[0][1]
-				if(is_root_url):
+				if(is_root_url(url)):
 					try:
 						#post_logger.info(requestBody)
 						responseHeader += ( " 204 " + status_code["204"] + "\r\n")
@@ -351,12 +366,12 @@ def client_thread(clientSocket, address):
 						'] "' + ' '.join(requestWords[0]) + '" ' + get_key(True, flag_status_code) + " " + str(content_length) + " " + str(requestBody))
 
 
-			elif (requestWords[0][0] == "PUT"):	
+			elif (requestWords[0][0] == "PUT" and method_flag["put"]):	
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
 				url += requestWords[0][1]
-				if(is_root_url):
+				if(is_root_url(url)):
 					try:
 						flag = path.exists(url)
 						requestedFile = open(url, "w+")
@@ -389,12 +404,12 @@ def client_thread(clientSocket, address):
 				else:	
 					clientSocket.sendall(responseHeader.encode())			
 			
-			elif(requestWords[0][0] == "DELETE"):
+			elif(requestWords[0][0] == "DELETE" and method_flag["delete"]):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
 				url += requestWords[0][1]
-				if(is_root_url):
+				if(is_root_url(url)):
 					try:
 						flag = path.exists(url)
 						requestedFileType = mimetypes.MimeTypes().guess_type(url)[0]
@@ -456,39 +471,27 @@ def client_thread(clientSocket, address):
 				error_logger.error("Server exception occurred", exc_info=True)
 			break
 
+def runServer():
+	while True:
+		try:
+			clientSocket, address = serverSocket.accept()
+			print("connected to", address)
+			debug_logger.debug("[" + str(date()) + "] connected to IP: " + str(address[0]) + " Port: " + str(address[1]))
+			_thread.start_new_thread(client_thread, (clientSocket, address, ))
+		except:
+			#print(e)	
+			break
+
+for i in range (0, 10):
+	_thread.start_new_thread(runServer, ())
 
 while True:
 	try:
-		clientSocket, address = serverSocket.accept()
-		print("connected to", address)
-		debug_logger.debug("[" + str(date()) + "] connected to IP: " + str(address[0]) + " Port: " + str(address[1]))
-		_thread.start_new_thread(client_thread, (clientSocket, address, ))
+		pass
 	except:
-		#print(e)
 		print("\n*****Http server stopped*****")
 		debug_logger.debug("[" + str(date()) + "] HTTP server stopped")
 		break
+
 serverSocket.close()
-'''def recv_timeout(the_socket,timeout=0.3):
-	the_socket.setblocking(0) 
-	total_data=[];
-	data=b'';
-	begin=time.time()
-	while 1:
-		if total_data and time.time()-begin > timeout:
-			break
-		
-		elif time.time()-begin > timeout*2:
-			break	
-		try:
-			data = the_socket.recv(8192)
-			if data:
-				total_data.append(data.decode())
-				begin=time.time()
-			else:
-				time.sleep(0.1)
-		except:
-			pass
-	
-	return ''.join(total_data)'''
 

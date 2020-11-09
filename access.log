@@ -1,7 +1,0 @@
-127.0.0.1 [Mon Nov  9 13:14:50 2020] "GET /index.html HTTP/1.1" 304 732
-127.0.0.1 [Mon Nov  9 13:14:55 2020] "GET /index2.html HTTP/1.1" 307 194
-127.0.0.1 [Mon Nov  9 13:14:55 2020] "GET /a/index.html HTTP/1.1" 304 714
-127.0.0.1 [Mon Nov  9 13:14:55 2020] "GET /a/img_chania.jpg HTTP/1.1" 404 175
-127.0.0.1 [Mon Nov  9 13:14:55 2020] "GET /a/traceroute.png HTTP/1.1" 404 175
-127.0.0.1 [Mon Nov  9 13:14:55 2020] "GET /a/1920px-HTTP_logo.svg.png HTTP/1.1" 404 175
-127.0.0.1 [Mon Nov  9 13:15:01 2020] "GET /http.py HTTP/1.1" 403 175
