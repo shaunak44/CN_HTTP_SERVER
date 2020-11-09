@@ -79,38 +79,14 @@ class GetRequestMaker(unittest.TestCase):
 		print("\nSending multiple 25 GET requests")
 		for i in range(0, 5):
 			Thread(target=self.multiple_get, args=(5, )).start()
-		sleep(0.1)
+		sleep(0.2)
 		try:
 			self.assertEqual(self.recvd, 25)
 			print("The simple GET with 25 requests working correctly")
 		except Exception as e:	
 			print("The simple GET with 25 requests not working correctly", e)
 		self.recvd = 0
-	
-	def test_simple_get_with_100_requests(self):
-		print("\nSending multiple 100 GET requests")
-		for i in range(0, 10):
-			Thread(target=self.multiple_get, args=(10, )).start()
-		sleep(0.25)
-		try:
-			self.assertEqual(self.recvd, 100)
-			print("The simple GET with 100 requests working correctly")
-		except Exception as e:	
-			print("The simple GET with 100 requests not working correctly", e)
-		self.recvd = 0
-
-	def test_simple_get_with_1000_requests(self):
-		print("\nSending multiple 1000 GET requests")
-		for i in range(0, 100):
-			Thread(target=self.multiple_get, args=(10, )).start()
-		sleep(0.3)
-		try:
-			self.assertEqual(self.recvd, 1000)
-			print("The simple GET with 1000 requests working correctly")
-		except Exception as e:	
-			print("The simple GET with 1000 requests not working correctly", e)
-		#print(self.recvd)
-	
+		
 	def test_not_found_get(self):
 		print("\nSending simple GET request for non-existing file")
 		response = requests.get('http://127.0.0.1:12345/not_exists.html')
@@ -120,7 +96,7 @@ class GetRequestMaker(unittest.TestCase):
 		except Exception as e:	
 			print("The simple GET request for non-existing file not working correctly", e)
 
-	def test_get_bad_request(self):
+	def test_get_zbad_request(self):
 		print("\nSending simple GET request with bad request URL")
 		testerSocket = socket(AF_INET, SOCK_STREAM)
 		testerSocket.connect(('', 12345))

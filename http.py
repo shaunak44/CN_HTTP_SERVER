@@ -135,8 +135,8 @@ def client_thread(clientSocket, address):
 			headers = {}
 			requestBody = ""	
 			header_flag_register = {"set_cookie_flag":False, "temp_redirect_flag":False, "per_redirect_flag":False}
-			
 			global log_flag
+			method_flag = {"get": True, "post": True, "put": True, "delete": True, "head": True}		
 			requestData= recv_timeout(clientSocket)
 			print(requestData)
 			requestWords = split_data(requestData)
@@ -162,6 +162,7 @@ def client_thread(clientSocket, address):
 					responseHeader += 'WWW-Authenticate: Basic realm="Access to staging site"'
 					responseHeader += ("\r\n\r\n")
 					flag_status_code["401"] = True
+					method_flag["get"] = False
 					clientSocket.sendall(responseHeader.encode())
 				else:
 					type_, credentials = credentials.split(" ")
@@ -179,10 +180,25 @@ def client_thread(clientSocket, address):
 						responseHeader += 'WWW-Authenticate: Basic realm="Access to staging site"'
 						responseHeader += ("\r\n\r\n")
 						flag_status_code["401"] = True
+						method_flag["get"] = False
 						clientSocket.sendall(responseHeader.encode())
+
+			elif(requestWords[0][1] in list(serverConfig["FORBIDDEN_FILES"])):
+				flag_status_code["403"] = True
+				not_found_page = open ("forbidden.html", "r")
+				file_text = not_found_page.read()
+				content_length = len(file_text)
+				responseHeader += (" 403 " + status_code["403"] + "\r\n")
+				responseHeader = create_header(responseHeader, content_length)
+				responseHeader += file_text
+				clientSocket.sendall(responseHeader.encode())
+				clientSocket.close()
+				method_flag["get"] = False
+				#break
+
 			
 			#set_cookie_flag = False
-			if(requestWords[0][0] == "GET" or requestWords[0][0] == "HEAD" and not flag_status_code["401"]):
+			if((requestWords[0][0] == "GET" and method_flag["get"]) or requestWords[0][0] == "HEAD"):
 				version = "HTTP/1.1"
 				if(len(requestWords[0]) == 3):
 					version = requestWords[0][2]
