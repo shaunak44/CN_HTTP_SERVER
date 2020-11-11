@@ -1,0 +1,12 @@
+Wed Nov 11 22:13:16 2020 Server exception Occurred
+Traceback (most recent call last):
+  File "http_server.py", line 281, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './root/not_exists.html'
+--------------------------------------------------------------------------------
+Wed Nov 11 22:13:21 2020 Server exception Occurred
+Traceback (most recent call last):
+  File "http_server.py", line 281, in client_thread
+    requestedFile = open(url, "rb")
+FileNotFoundError: [Errno 2] No such file or directory: './root/not_exists.html'
+--------------------------------------------------------------------------------
